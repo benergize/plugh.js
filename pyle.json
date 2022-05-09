@@ -1,0 +1,16 @@
+{
+
+	"files": [
+		"src/Engine.js",
+		"src/CommandLine.js",
+		"src/DungeonParser.js",
+		"src/InputDelegator.js",
+		"src/Room.js",
+		"src/GameObject.js",
+		"src/Player.js"
+
+	],
+
+	"output": ["PLUGH.js"]
+
+}

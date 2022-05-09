@@ -192,6 +192,12 @@ function CommandLine() {
 		GAME_ENGINE_INSTANCE.inputDelegator.setStatus("y_or_n" + (askSecretly ? "_noprompt":""));
 		GAME_ENGINE_INSTANCE.inputDelegator.choices = {"y": yes, "n": no};
 	}
+
+	this.askPassword = function(callbackCorrect, callbackIncorrect) {
+
+		GAME_ENGINE_INSTANCE.inputDelegator.setStatus("password");
+		GAME_ENGINE_INSTANCE.inputDelegator.choices = {"correct": callbackCorrect, "incorrect": callbackIncorrect};
+	}
 	
 	//this.input = preParse;
 

@@ -91,6 +91,11 @@ function InputDelegator(input="", status) {
 				else { returnVal = "(Y/N)"; }
 			}
 		}
+		else if(this.getStatus() == "password") {
+
+			let correctOrIncorrect = input == this.password ? "correct" : "incorrect";
+			if(typeof this.choices[correctOrIncorrect] == "function") { returnVal = this.choices[correctOrIncorrect](); }
+		}
 
 		return returnVal;
 	}
