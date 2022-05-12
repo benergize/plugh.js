@@ -1,5 +1,8 @@
 function Player() {
 
+
+	
+
 	this.inventory = {
 		"items":[],
 		"getItem":function(val) {
@@ -8,7 +11,7 @@ function Player() {
 
 			for(let i = 0; i < this.items.length; i++) {
 
-				if(this.items[i][typeof i == "string" ? "name" : "id"] == val) {
+				if(this.items[i][typeof val == "string" ? "name" : "id"] == val) {
 					return this.items[i];
 				}
 			}
