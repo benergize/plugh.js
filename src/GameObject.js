@@ -26,6 +26,7 @@ function GameObject(name,pname,props) {
 		'cast':"",
 		'light':"",
 		'toss':'',
+		"turnoff":""
 		
 	}
 	
