@@ -18,10 +18,12 @@ function DungeonParser() {
 
 	this.parse = function(input) {
 
-		let found = function(val) { return val !== -1; }
+		let found = function(val) { return val != -1; }
 
 		let currentRoom = GAME_ENGINE_INSTANCE.getCurrentRoom();
 		let objectsInRoom = currentRoom.objects.concat(GAME_ENGINE_INSTANCE.player.inventory.items);
+
+		objectsInRoom = objectsInRoom.filter(el=>{ return typeof el.enabled == "boolean" ? el.enabled : (typeof el.enabled == "function" ? el.enabled() : true); });
 
 		let verbFound = -1;
 		let objectFound = -1;
@@ -30,15 +32,22 @@ function DungeonParser() {
 
 		input = input.toLowerCase().trim().replace(" the "," ");
 
-		let specialResponse = -1;
-		let specialResponseType = [
-			"lookAround",
-			"cardinalDirection",
-			"magicWord"
-		];
-
+		if(input.indexOf("and then") != -1) { 
+			let allCommands = input.split("and then"); 
+			allCommands.forEach(el=>{
+				GAME_ENGINE_INSTANCE.echo("> " + el);
+				this.parse(el);
+			});
+			return "";
+		}
 		if(this.lookAroundPhrases.indexOf(input) != -1) { return this.lookAround(currentRoom); }
-		if(input.indexOf("pick up") != -1) {  }
+		if(input == "leave" && GAME_ENGINE_INSTANCE.getCurrentRoom().leave !== -1) { return GAME_ENGINE_INSTANCE.setCurrentRoom(GAME_ENGINE_INSTANCE.getCurrentRoom().leave); }
+		if(["north","south","east","west","n","s","e","w"].indexOf(input) !== -1) { 
+			let goDir = this.processCardinalDirection(input, objectsInRoom); 
+			console.log(goDir);
+			if(typeof goDir == "function") { return goDir(); }
+			if(typeof goDir == "string") { return goDir; } 
+		}
 
 		input = input.split(" ");
 
@@ -102,7 +111,7 @@ function DungeonParser() {
 
 
 		//No verb was found this parse, but a hanging verb remains from last parse
-		if(!found(verbFound) && found(this.hangingVerb)) { this.verbFound = this.hangingVerb; this.hangingVerb = -1; }
+		if(!found(verbFound) && found(this.hangingVerb)) { verbFound = this.hangingVerb; this.hangingVerb = -1; }
 
 
 		//Verb and object both found! Party!
@@ -115,19 +124,24 @@ function DungeonParser() {
 		else if(found(objectFound) && !found(verbFound)) {
 
 			if(typeof objectFound.sight != "undefined" && objectFound.sight != "") { return objectFound.response("sight"); }
+			else { return this.errorText(); }
 		}
 		
 		//Verb 
-		else if(found(verbFound)) {
+		else if(found(verbFound) && found(rawVerbFound)) {
 
 			this.hangingVerb = verbFound;
 
 			return "What would you like to " + rawVerbFound + "?";
 		}
 		else {
-
-			return GAME_ENGINE_INSTANCE.customFailureMessages.length > 0 ? GAME_ENGINE_INSTANCE.customFailureMessages[Math.floor(Math.random() * GAME_ENGINE_INSTANCE.customFailureMessages.length)] : "I didn't understand that.";
+			return this.errorText();
 		}
+
+	}
+
+	this.errorText = function() {
+		return GAME_ENGINE_INSTANCE.customFailureMessages.length > 0 ? GAME_ENGINE_INSTANCE.customFailureMessages[Math.floor(Math.random() * GAME_ENGINE_INSTANCE.customFailureMessages.length)] : "I didn't understand that.";
 
 	}
 
@@ -209,7 +223,8 @@ function DungeonParser() {
 			"barrage",
 			"prod",
 			"smash",
-			"break"
+			"break",
+			"cut"
 		],
 		"talk": [
 			"talk",
@@ -313,7 +328,26 @@ function DungeonParser() {
 		],
 		"knock": [
 			"knock"
+		],
+		"turnoff":[
+			"off",
+			"disable"
 		]
+	}
+
+	this.processCardinalDirection = function(val, objectsInRoom) {
+
+		val = val == 'n' ? 'north' : (val == 's' ? 'south' : (val == 'e' ? 'east' : (val == 'w' ? 'west' : '')));
+
+		for(let i = 0; i < objectsInRoom.length; i++) {
+
+			let aliases = Array.isArray(objectsInRoom[i].aliases) ? objectsInRoom[i].aliases : [];
+
+			if(objectsInRoom[i].name == val || aliases.indexOf(val) !== -1) {
+
+				return objectsInRoom[i].enter;
+			}
+		}
 	}
 
 
