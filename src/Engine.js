@@ -4,20 +4,18 @@
 	Room retrieval/addition, global object registration
 
 */
-function Plugh(domElement="body") {
+function PLUGH(domElement="body") {
 
 	GAME_ENGINE_INSTANCE = this;
 	_GAME_ENGINE_INSTANCE = this;
 
-	this.domElement = document.querySelector(domElement);
 	this.commandLine = new CommandLine();
 	this.inputDelegator = new InputDelegator();
 	this.player = new Player();
 
 	this.customFailureMessages = [];
 
-	this.init = function() {
-		this.commandLine.addToPage(domElement);
+	this.init = function(cli=false) {
 
 		this.echo = function(output) { GAME_ENGINE_INSTANCE.commandLine.echo(output); }
 		this.enterContinues = function(callback) { GAME_ENGINE_INSTANCE.commandLine.enterContinues(callback); }
@@ -25,8 +23,20 @@ function Plugh(domElement="body") {
 		this.yesOrNo = function(yes,no) { GAME_ENGINE_INSTANCE.commandLine.yesOrNo(yes,no); }
 		this.askPassword = function(callbackCorrect, callbackIncorrect) { GAME_ENGINE_INSTANCE.commandLine.yesOrNo(callbackCorrect,callbackIncorrect); }
 
-		window.echo = this.echo;
+		if(typeof window != "undefined") { window.echo = this.echo; }
+
+		if(cli && typeof require == "function" && typeof process != "undefined") {
+
+			this.commandLine.nodeLoop();
+		}
+		else {
+
+			this.domElement = document.querySelector(domElement);
+			this.commandLine.addToPage(domElement);
+		}
 	}
+
+	
 
 
 	this.rooms = [];
@@ -34,6 +44,7 @@ function Plugh(domElement="body") {
 	this.media = [];
 
 	this.currentRoom = 0;
+	this.lastRoom = this.currentRoom;
 
 	this.highestID = 0;
 
@@ -63,9 +74,11 @@ function Plugh(domElement="body") {
 	}
 
 	this.setCurrentRoom = function(room) {
+
 		let nextRoom = this.getRoom(room);
 
 		if(nextRoom !== -1) { 
+			this.lastRoom = this.currentRoom.id;
 			this.currentRoom = this.getRoom(room); 
 			if(typeof this.currentRoom.intro == "function") { this.currentRoom.intro(); }
 			else { echo(this.currentRoom.intro); }
@@ -115,3 +128,5 @@ function Plugh(domElement="body") {
 
 	return this;
 }
+
+if(typeof process != "undefined" && typeof require != "undefined") { exports.plugh = PLUGH; }
