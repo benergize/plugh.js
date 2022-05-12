@@ -5,7 +5,8 @@ function Room(name,pname,props) {
 		'pName':pname,
 		'desc':'',
 		'intro':'',
-		'objects': []
+		'objects': [],
+		'leave':-1
 	}
 
 	
