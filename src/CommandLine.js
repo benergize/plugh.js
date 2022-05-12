@@ -72,7 +72,7 @@ function CommandLine() {
 	}
 	
 	this.write = function(val) { this.consoleOutput.innerHTML += val; }
-	this.writeLn = function(val) { this.consoleOutput.innerHTML += val + "<br/><br/>"; }
+	this.writeLn = function(val) { console.log(val);this.consoleOutput.innerHTML += val + "<br/><br/>"; }
 	this.in = function(filter=false) { let f =  filter ? this.consoleInput.value.replace(/[^\w ]/,'') : this.consoleInput.value; this.consoleInput.value = ""; return f;}
 	
 	this.pageResize = function() {
@@ -197,6 +197,23 @@ function CommandLine() {
 
 		GAME_ENGINE_INSTANCE.inputDelegator.setStatus("password");
 		GAME_ENGINE_INSTANCE.inputDelegator.choices = {"correct": callbackCorrect, "incorrect": callbackIncorrect};
+	}
+
+	this.node_readLine = -1;
+
+	this.nodeLoop = function() {
+
+		if(this.node_readLine === -1) {
+			this.node_readLine = require('readline').createInterface({
+				input: process.stdin,
+				output: process.stdout,
+			});
+		}
+		
+		this.node_readLine.question(`What's your name?`, name => {
+			GAME_ENGINE_INSTANCE.inputDelegator.delegate(name)
+		});
+		  
 	}
 	
 	//this.input = preParse;
