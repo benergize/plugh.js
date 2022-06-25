@@ -38,6 +38,10 @@ function Room(name,pname,props) {
 	this.getObject = function(obj) {
 		return GAME_ENGINE_INSTANCE.getObject(obj, this);
 	}
+	
+	this.id = GAME_ENGINE_INSTANCE.generateID();
+
+	GAME_ENGINE_INSTANCE.addRoom(this);
 
 
 	return this;

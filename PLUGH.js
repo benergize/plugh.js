@@ -4,10 +4,22 @@
 	Room retrieval/addition, global object registration
 
 */
-function PLUGH(domElement="body") {
+function PLUGH(domElement="body", globalize=true) {
 
 	GAME_ENGINE_INSTANCE = this;
 	_GAME_ENGINE_INSTANCE = this;
+
+	this.globalize = globalize;
+
+	this.settings = {
+
+		"show_look_around_text_on_room_load": false,
+		"show_room_description_on_room_load": false,
+		"make_window_title_room_name": true,
+		"debug_mode":true
+	};
+
+	this.name = "Text Adventure";
 
 	this.commandLine = new CommandLine();
 	this.inputDelegator = new InputDelegator();
@@ -17,13 +29,30 @@ function PLUGH(domElement="body") {
 
 	this.init = function(cli=false) {
 
-		this.echo = function(output) { GAME_ENGINE_INSTANCE.commandLine.echo(output); }
+		this.cls = function() { GAME_ENGINE_INSTANCE.commandLine.cls(); }
+		this.echo = function(...output) { GAME_ENGINE_INSTANCE.commandLine.echo(...output); }
 		this.enterContinues = function(callback) { GAME_ENGINE_INSTANCE.commandLine.enterContinues(callback); }
 		this.showChoice = function(choices) { GAME_ENGINE_INSTANCE.commandLine.showChoice(choices); }
 		this.yesOrNo = function(yes,no) { GAME_ENGINE_INSTANCE.commandLine.yesOrNo(yes,no); }
 		this.askPassword = function(callbackCorrect, callbackIncorrect) { GAME_ENGINE_INSTANCE.commandLine.yesOrNo(callbackCorrect,callbackIncorrect); }
 
-		if(typeof window != "undefined") { window.echo = this.echo; }
+		if(typeof window != "undefined" && this.globalize) { 
+			window.echo = this.echo; 
+			window.cls = this.cls;
+			window.enterContinues = this.enterContinues;
+			window.showChoice = this.showChoice;
+			window.yesOrNo = this.yesOrNo;
+			window.askPassword = this.askPassword;
+
+			window.gameState = function(...args) {   GAME_ENGINE_INSTANCE.gameState(...args); }
+			window.gameState2 = function(...args) {   GAME_ENGINE_INSTANCE.gameState2(...args); }
+			window.getObject = function(...args) {   GAME_ENGINE_INSTANCE.getObject(...args); }
+			window.getRoom = function(...args) {   GAME_ENGINE_INSTANCE.getRoom(...args); }
+			window.getCurrentRoom = function(...args) {   GAME_ENGINE_INSTANCE.getCurrentRoom(...args); }
+			window.loadRoom = function(...args) {   GAME_ENGINE_INSTANCE.loadRoom(...args); }
+			window.setCurrentRoom = function(...args) {   GAME_ENGINE_INSTANCE.setCurrentRoom(...args); }
+			
+		}
 
 		if(cli && typeof require == "function" && typeof process != "undefined") {
 
@@ -79,9 +108,22 @@ function PLUGH(domElement="body") {
 
 		if(nextRoom !== -1) { 
 			this.lastRoom = this.currentRoom.id;
-			this.currentRoom = this.getRoom(room); 
+			this.currentRoom = this.getRoom(room);
+
+			if(this.settings.make_window_title_room_name) { 
+				document.title = this.currentRoom.pName + " - " + this.name;
+			}
+			
 			if(typeof this.currentRoom.intro == "function") { this.currentRoom.intro(); }
-			else { echo(this.currentRoom.intro); }
+			else { this.echo(this.currentRoom.intro); }
+
+			if(this.settings.show_room_description_on_room_load) {
+				if(typeof this.currentRoom.description == "function") { this.currentRoom.intro(); }
+				else { this.echo(this.currentRoom.description); }
+			}
+			if(this.settings.show_look_around_text_on_room_load) {
+				this.echo(this.inputDelegator.delegate("look around"));
+			}
 		}
 		else { return false; }
 	}
@@ -118,12 +160,30 @@ function PLUGH(domElement="body") {
 	this.gameState = function(attr,set=null) {
 		if(set!==null) { this['_flags'][attr]=set; }
 		else {
+			return this['_flags'][attr];//typeof this['_flags'][attr] != 'undefined' && this['_flags'][attr] !== false;
+		}
+	}
+
+	this.gameState2 = function(attr,set=null) {
+		if(set!==null) { this['_flags'][attr]=set; }
+		else {
 			return typeof this['_flags'][attr] != 'undefined' && this['_flags'][attr] !== false;
 		}
 	}
+
 	this.generateID = function() {  
 		this.highestID++;
 		return this.highestID;
+	}
+
+	this.save = function() {
+
+		let saveObject = {
+			player: this.player,
+			gameState: this._flags
+		};
+
+		this.echo(btoa(JSON.stringify(saveObject)));
 	}
 
 	return this;
@@ -235,14 +295,19 @@ if(typeof process != "undefined" && typeof require != "undefined") { exports.plu
 	
 	this.queryTicker = 0;
 
-	this.echo = function(e) {
+	this.echo = function(...e) {
 		console.log(e);
 		if(typeof e != "undefined") {
-			e.replace("\n", "<br/>");
-			
-			this.writeLn(e);
-			this.addToTranscript("", e + "<br/><br/>");
-			this.scrollBuffer();
+
+			if(Array.isArray(e[0])) { e = e[0]; }
+
+			e.forEach(el=>{
+				el = el.replace("\n", "<br/>");
+				
+				this.writeLn(el);
+				this.addToTranscript("", el + "<br/><br/>");
+				this.scrollBuffer();
+			});
 		}
 	}
 
@@ -375,14 +440,18 @@ if(typeof process != "undefined" && typeof require != "undefined") { exports.plu
 		let currentRoom = GAME_ENGINE_INSTANCE.getCurrentRoom();
 		let objectsInRoom = currentRoom.objects.concat(GAME_ENGINE_INSTANCE.player.inventory.items);
 
-		objectsInRoom = objectsInRoom.filter(el=>{ return typeof el.enabled == "boolean" ? el.enabled : (typeof el.enabled == "function" ? el.enabled() : true); });
+		objectsInRoom = objectsInRoom.filter(el=>{ return el.activated(); });
 
 		let verbFound = -1;
 		let objectFound = -1;
 
 		let rawVerbFound = -1;
 
+		let specialResponse = -1;
+
 		input = input.toLowerCase().trim().replace(" the "," ");
+
+		let rawInput = input.toString();
 
 		if(input.indexOf("and then") != -1) { 
 			let allCommands = input.split("and then"); 
@@ -392,8 +461,11 @@ if(typeof process != "undefined" && typeof require != "undefined") { exports.plu
 			});
 			return "";
 		}
+
 		if(this.lookAroundPhrases.indexOf(input) != -1) { return this.lookAround(currentRoom); }
+
 		if(input == "leave" && GAME_ENGINE_INSTANCE.getCurrentRoom().leave !== -1) { return GAME_ENGINE_INSTANCE.setCurrentRoom(GAME_ENGINE_INSTANCE.getCurrentRoom().leave); }
+		
 		if(["north","south","east","west","n","s","e","w"].indexOf(input) !== -1) { 
 			let goDir = this.processCardinalDirection(input, objectsInRoom); 
 			console.log(goDir);
@@ -442,6 +514,15 @@ if(typeof process != "undefined" && typeof require != "undefined") { exports.plu
 					}
 				}
 
+				for(let s in obj.specialResponses) {
+
+					let stlr = s.toLowerCase();
+					if(rawInput.toLowerCase() == stlr) {
+
+						return typeof obj.specialResponses[s] == "function" ? obj.specialResponses[s]() : obj.specialResponses[s]; 
+					}
+				}
+
 				if(objectFound !== -1) { break; }
 			}
 		}
@@ -484,6 +565,8 @@ if(typeof process != "undefined" && typeof require != "undefined") { exports.plu
 
 			this.hangingVerb = verbFound;
 
+			rawVerbFound = rawVerbFound == "x" ? "examine" : rawVerbFound;
+
 			return "What would you like to " + rawVerbFound + "?";
 		}
 		else {
@@ -505,7 +588,11 @@ if(typeof process != "undefined" && typeof require != "undefined") { exports.plu
 
 		let objectsInRoom = currentRoom.objects;
 
-		let lookAroundList = objectsInRoom.filter(el=>{return typeof el.pName != "undefined" && el.pName != "";}).map(el=>{return el.pName;});
+		let lookAroundList = objectsInRoom.filter(el=>{
+			return typeof el.pName != "undefined" && el.pName != "" && el.activated();
+		}).map(el=>{
+			return typeof el.pName == "function" ? el.pName() : el.pName;
+		});
 
 		let aAnAndList = [];
 
@@ -523,9 +610,12 @@ if(typeof process != "undefined" && typeof require != "undefined") { exports.plu
 		});
 
 		//If the return value or property desc is undefined null or empty, return empty string.
-		let descVal = (typeof currentRoom.desc == "function" ? currentRoom.desc() : currentRoom.desc) || "";
 
-		return descVal + "<br/><br/>There's " + aAnAndList.join(", ") + ".";
+		let descOrDescr = typeof currentRoom.description != "undefined" ? "description" : "desc";
+
+		let descVal = (typeof currentRoom[descOrDescr] == "function" ? currentRoom[descOrDescr]() : currentRoom[descOrDescr]) || "";
+
+		return (descVal?descVal+"<br/><br/>":"") + " There's " + aAnAndList.join(", ") + ".";
 	}
 	
 	this.actionWords = {
@@ -550,7 +640,8 @@ if(typeof process != "undefined" && typeof require != "undefined") { exports.plu
 			"inspect",
 			"examine",
 			"check",
-			"peek"
+			"peek",
+			"x"
 		],
 		"smell": [
 			"smell",
@@ -700,6 +791,8 @@ if(typeof process != "undefined" && typeof require != "undefined") { exports.plu
 				return objectsInRoom[i].enter;
 			}
 		}
+
+		return "You can't go that way.";
 	}
 
 
@@ -720,7 +813,8 @@ if(typeof process != "undefined" && typeof require != "undefined") { exports.plu
 		"show_choice",
 		"y_or_n",
 		"y_or_n_noprompt",
-		"password"
+		"password",
+		"dload"
 	];
 
 	this.status = 0;
@@ -742,6 +836,8 @@ if(typeof process != "undefined" && typeof require != "undefined") { exports.plu
 	this.delegate = function(input) {
 
 		let returnVal = "";
+
+		if(GAME_ENGINE_INSTANCE.settings.debug_mode && input == "dload") { this.setStatus("dload"); return "Where to?"; }
 
 		if(this.getStatus() == "dungeon_navigation") { returnVal = this.dungeonParser.parse(input); }
 		else if(this.getStatus() == "enter_continues") { 
@@ -802,6 +898,12 @@ if(typeof process != "undefined" && typeof require != "undefined") { exports.plu
 			let correctOrIncorrect = input == this.password ? "correct" : "incorrect";
 			if(typeof this.choices[correctOrIncorrect] == "function") { returnVal = this.choices[correctOrIncorrect](); }
 		}
+		else if(this.getStatus() == "dload") {
+
+			
+			this.setStatus("dungeon_navigation");
+			GAME_ENGINE_INSTANCE.loadRoom(input);
+		}
 
 		return returnVal;
 	}
@@ -848,6 +950,10 @@ if(typeof process != "undefined" && typeof require != "undefined") { exports.plu
 	this.getObject = function(obj) {
 		return GAME_ENGINE_INSTANCE.getObject(obj, this);
 	}
+	
+	this.id = GAME_ENGINE_INSTANCE.generateID();
+
+	GAME_ENGINE_INSTANCE.addRoom(this);
 
 
 	return this;
@@ -857,6 +963,8 @@ function GameObject(name,pname,props) {
 	let propsInit = {
 		'name':name,
 		'pName':pname,
+		'active':true,
+
 		'touch':"",
 		'taste':"",
 		'sight':"",
@@ -880,29 +988,38 @@ function GameObject(name,pname,props) {
 		'cast':"",
 		'light':"",
 		'toss':'',
-		"turnoff":""
+		"turnoff":"",
 		
+		'specialResponses':{}
 	}
 	
 	for(let v in propsInit) { this[v] = propsInit[v]; }
 	for(let v in props) { this[v] = props[v]; }
 
-	this.disabled = false;
-	this.enable = function() { this.disabled = false; }
-	this.disable = function() { this.disabled = true; }
-	this.enabled = function() { return !this.disabled; }
+	this.activate = function() { this.active = true; }
+	this.deactivate = function() { this.active = false; }
+	this.activated = function() { return typeof this.active == "boolean" ? this.active : (typeof this.active == "function" ? this.active() : true); }
+	this.getActivated = this.activated;
 
 	this.response = function(property) {
 		return typeof this[property] == "function" ? this[property]() : (typeof this[property] != "undefined" ? this[property] : "Undefined response.");
 	}
 
+
+
 	this.id = GAME_ENGINE_INSTANCE.generateID();
+
+	GAME_ENGINE_INSTANCE.addObject(this);
 
 	return this;
 }function Player() {
 
+	this.name = "";
+	this.score = 0;
 
-	
+	this.hp = 100;
+	this.mp = 100;
+	this.ap = 100;
 
 	this.inventory = {
 		"items":[],

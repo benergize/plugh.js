@@ -23,14 +23,18 @@ function DungeonParser() {
 		let currentRoom = GAME_ENGINE_INSTANCE.getCurrentRoom();
 		let objectsInRoom = currentRoom.objects.concat(GAME_ENGINE_INSTANCE.player.inventory.items);
 
-		objectsInRoom = objectsInRoom.filter(el=>{ return typeof el.enabled == "boolean" ? el.enabled : (typeof el.enabled == "function" ? el.enabled() : true); });
+		objectsInRoom = objectsInRoom.filter(el=>{ return el.activated(); });
 
 		let verbFound = -1;
 		let objectFound = -1;
 
 		let rawVerbFound = -1;
 
+		let specialResponse = -1;
+
 		input = input.toLowerCase().trim().replace(" the "," ");
+
+		let rawInput = input.toString();
 
 		if(input.indexOf("and then") != -1) { 
 			let allCommands = input.split("and then"); 
@@ -40,8 +44,11 @@ function DungeonParser() {
 			});
 			return "";
 		}
+
 		if(this.lookAroundPhrases.indexOf(input) != -1) { return this.lookAround(currentRoom); }
+
 		if(input == "leave" && GAME_ENGINE_INSTANCE.getCurrentRoom().leave !== -1) { return GAME_ENGINE_INSTANCE.setCurrentRoom(GAME_ENGINE_INSTANCE.getCurrentRoom().leave); }
+		
 		if(["north","south","east","west","n","s","e","w"].indexOf(input) !== -1) { 
 			let goDir = this.processCardinalDirection(input, objectsInRoom); 
 			console.log(goDir);
@@ -90,6 +97,15 @@ function DungeonParser() {
 					}
 				}
 
+				for(let s in obj.specialResponses) {
+
+					let stlr = s.toLowerCase();
+					if(rawInput.toLowerCase() == stlr) {
+
+						return typeof obj.specialResponses[s] == "function" ? obj.specialResponses[s]() : obj.specialResponses[s]; 
+					}
+				}
+
 				if(objectFound !== -1) { break; }
 			}
 		}
@@ -132,6 +148,8 @@ function DungeonParser() {
 
 			this.hangingVerb = verbFound;
 
+			rawVerbFound = rawVerbFound == "x" ? "examine" : rawVerbFound;
+
 			return "What would you like to " + rawVerbFound + "?";
 		}
 		else {
@@ -153,7 +171,11 @@ function DungeonParser() {
 
 		let objectsInRoom = currentRoom.objects;
 
-		let lookAroundList = objectsInRoom.filter(el=>{return typeof el.pName != "undefined" && el.pName != "";}).map(el=>{return el.pName;});
+		let lookAroundList = objectsInRoom.filter(el=>{
+			return typeof el.pName != "undefined" && el.pName != "" && el.activated();
+		}).map(el=>{
+			return typeof el.pName == "function" ? el.pName() : el.pName;
+		});
 
 		let aAnAndList = [];
 
@@ -171,9 +193,12 @@ function DungeonParser() {
 		});
 
 		//If the return value or property desc is undefined null or empty, return empty string.
-		let descVal = (typeof currentRoom.desc == "function" ? currentRoom.desc() : currentRoom.desc) || "";
 
-		return descVal + "<br/><br/>There's " + aAnAndList.join(", ") + ".";
+		let descOrDescr = typeof currentRoom.description != "undefined" ? "description" : "desc";
+
+		let descVal = (typeof currentRoom[descOrDescr] == "function" ? currentRoom[descOrDescr]() : currentRoom[descOrDescr]) || "";
+
+		return (descVal?descVal+"<br/><br/>":"") + " There's " + aAnAndList.join(", ") + ".";
 	}
 	
 	this.actionWords = {
@@ -198,7 +223,8 @@ function DungeonParser() {
 			"inspect",
 			"examine",
 			"check",
-			"peek"
+			"peek",
+			"x"
 		],
 		"smell": [
 			"smell",
@@ -348,6 +374,8 @@ function DungeonParser() {
 				return objectsInRoom[i].enter;
 			}
 		}
+
+		return "You can't go that way.";
 	}
 
 

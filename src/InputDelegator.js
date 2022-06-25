@@ -14,7 +14,8 @@ function InputDelegator(input="", status) {
 		"show_choice",
 		"y_or_n",
 		"y_or_n_noprompt",
-		"password"
+		"password",
+		"dload"
 	];
 
 	this.status = 0;
@@ -36,6 +37,8 @@ function InputDelegator(input="", status) {
 	this.delegate = function(input) {
 
 		let returnVal = "";
+
+		if(GAME_ENGINE_INSTANCE.settings.debug_mode && input == "dload") { this.setStatus("dload"); return "Where to?"; }
 
 		if(this.getStatus() == "dungeon_navigation") { returnVal = this.dungeonParser.parse(input); }
 		else if(this.getStatus() == "enter_continues") { 
@@ -95,6 +98,12 @@ function InputDelegator(input="", status) {
 
 			let correctOrIncorrect = input == this.password ? "correct" : "incorrect";
 			if(typeof this.choices[correctOrIncorrect] == "function") { returnVal = this.choices[correctOrIncorrect](); }
+		}
+		else if(this.getStatus() == "dload") {
+
+			
+			this.setStatus("dungeon_navigation");
+			GAME_ENGINE_INSTANCE.loadRoom(input);
 		}
 
 		return returnVal;

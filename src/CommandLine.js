@@ -104,14 +104,19 @@ function CommandLine() {
 	
 	this.queryTicker = 0;
 
-	this.echo = function(e) {
+	this.echo = function(...e) {
 		console.log(e);
 		if(typeof e != "undefined") {
-			e.replace("\n", "<br/>");
-			
-			this.writeLn(e);
-			this.addToTranscript("", e + "<br/><br/>");
-			this.scrollBuffer();
+
+			if(Array.isArray(e[0])) { e = e[0]; }
+
+			e.forEach(el=>{
+				el = el.replace("\n", "<br/>");
+				
+				this.writeLn(el);
+				this.addToTranscript("", el + "<br/><br/>");
+				this.scrollBuffer();
+			});
 		}
 	}
 

@@ -4,10 +4,22 @@
 	Room retrieval/addition, global object registration
 
 */
-function PLUGH(domElement="body") {
+function PLUGH(domElement="body", globalize=true) {
 
 	GAME_ENGINE_INSTANCE = this;
 	_GAME_ENGINE_INSTANCE = this;
+
+	this.globalize = globalize;
+
+	this.settings = {
+
+		"show_look_around_text_on_room_load": false,
+		"show_room_description_on_room_load": false,
+		"make_window_title_room_name": true,
+		"debug_mode":true
+	};
+
+	this.name = "Text Adventure";
 
 	this.commandLine = new CommandLine();
 	this.inputDelegator = new InputDelegator();
@@ -17,13 +29,30 @@ function PLUGH(domElement="body") {
 
 	this.init = function(cli=false) {
 
-		this.echo = function(output) { GAME_ENGINE_INSTANCE.commandLine.echo(output); }
+		this.cls = function() { GAME_ENGINE_INSTANCE.commandLine.cls(); }
+		this.echo = function(...output) { GAME_ENGINE_INSTANCE.commandLine.echo(...output); }
 		this.enterContinues = function(callback) { GAME_ENGINE_INSTANCE.commandLine.enterContinues(callback); }
 		this.showChoice = function(choices) { GAME_ENGINE_INSTANCE.commandLine.showChoice(choices); }
 		this.yesOrNo = function(yes,no) { GAME_ENGINE_INSTANCE.commandLine.yesOrNo(yes,no); }
 		this.askPassword = function(callbackCorrect, callbackIncorrect) { GAME_ENGINE_INSTANCE.commandLine.yesOrNo(callbackCorrect,callbackIncorrect); }
 
-		if(typeof window != "undefined") { window.echo = this.echo; }
+		if(typeof window != "undefined" && this.globalize) { 
+			window.echo = this.echo; 
+			window.cls = this.cls;
+			window.enterContinues = this.enterContinues;
+			window.showChoice = this.showChoice;
+			window.yesOrNo = this.yesOrNo;
+			window.askPassword = this.askPassword;
+
+			window.gameState = function(...args) {   GAME_ENGINE_INSTANCE.gameState(...args); }
+			window.gameState2 = function(...args) {   GAME_ENGINE_INSTANCE.gameState2(...args); }
+			window.getObject = function(...args) {   GAME_ENGINE_INSTANCE.getObject(...args); }
+			window.getRoom = function(...args) {   GAME_ENGINE_INSTANCE.getRoom(...args); }
+			window.getCurrentRoom = function(...args) {   GAME_ENGINE_INSTANCE.getCurrentRoom(...args); }
+			window.loadRoom = function(...args) {   GAME_ENGINE_INSTANCE.loadRoom(...args); }
+			window.setCurrentRoom = function(...args) {   GAME_ENGINE_INSTANCE.setCurrentRoom(...args); }
+			
+		}
 
 		if(cli && typeof require == "function" && typeof process != "undefined") {
 
@@ -79,9 +108,22 @@ function PLUGH(domElement="body") {
 
 		if(nextRoom !== -1) { 
 			this.lastRoom = this.currentRoom.id;
-			this.currentRoom = this.getRoom(room); 
+			this.currentRoom = this.getRoom(room);
+
+			if(this.settings.make_window_title_room_name) { 
+				document.title = this.currentRoom.pName + " - " + this.name;
+			}
+			
 			if(typeof this.currentRoom.intro == "function") { this.currentRoom.intro(); }
-			else { echo(this.currentRoom.intro); }
+			else { this.echo(this.currentRoom.intro); }
+
+			if(this.settings.show_room_description_on_room_load) {
+				if(typeof this.currentRoom.description == "function") { this.currentRoom.intro(); }
+				else { this.echo(this.currentRoom.description); }
+			}
+			if(this.settings.show_look_around_text_on_room_load) {
+				this.echo(this.inputDelegator.delegate("look around"));
+			}
 		}
 		else { return false; }
 	}
@@ -118,12 +160,30 @@ function PLUGH(domElement="body") {
 	this.gameState = function(attr,set=null) {
 		if(set!==null) { this['_flags'][attr]=set; }
 		else {
+			return this['_flags'][attr];//typeof this['_flags'][attr] != 'undefined' && this['_flags'][attr] !== false;
+		}
+	}
+
+	this.gameState2 = function(attr,set=null) {
+		if(set!==null) { this['_flags'][attr]=set; }
+		else {
 			return typeof this['_flags'][attr] != 'undefined' && this['_flags'][attr] !== false;
 		}
 	}
+
 	this.generateID = function() {  
 		this.highestID++;
 		return this.highestID;
+	}
+
+	this.save = function() {
+
+		let saveObject = {
+			player: this.player,
+			gameState: this._flags
+		};
+
+		this.echo(btoa(JSON.stringify(saveObject)));
 	}
 
 	return this;

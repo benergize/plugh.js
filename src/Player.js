@@ -1,7 +1,11 @@
 function Player() {
 
+	this.name = "";
+	this.score = 0;
 
-	
+	this.hp = 100;
+	this.mp = 100;
+	this.ap = 100;
 
 	this.inventory = {
 		"items":[],
