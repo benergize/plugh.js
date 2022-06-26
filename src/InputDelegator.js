@@ -45,11 +45,13 @@ function InputDelegator(input="", status) {
 
 			this.setStatus("dungeon_navigation");
 
-			console.log(this.getStatus(),this.queuedAction);
+			//console.log(this.getStatus(),this.queuedAction);
+
 			if(this.queuedAction !== -1) {
 
+				console.log(this.queuedAction, this.lastQueuedActionString);
 
-				if(this.queuedAction.toString() !== this.lastQueuedActionString && typeof this.queuedAction == "function") {
+				if(typeof this.queuedAction == "function" && (this.queuedAction.toString() !== this.lastQueuedActionString)) {
 
 					this.lastQueuedActionString = this.queuedAction.toString();
 					returnVal = this.queuedAction();
@@ -67,6 +69,7 @@ function InputDelegator(input="", status) {
 		}
 		else if(this.getStatus() == "show_choice") {
 
+			this.lastQueuedActionString = -1;
 
 			let numberChoice = Number.parseInt(input);
 
@@ -82,7 +85,7 @@ function InputDelegator(input="", status) {
 		}
 		else if(this.getStatus() == "y_or_n" || this.getStatus() == "y_or_n_noprompt") {
 
-			let ilc = input[0].toLowerCase();
+			let ilc = typeof input[0] != "undefined" ? input[0].toLowerCase() : "";
 
 			if(ilc == "y" || ilc == "n") { 
 				this.setStatus("dungeon_navigation"); 

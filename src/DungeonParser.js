@@ -51,7 +51,7 @@ function DungeonParser() {
 		
 		if(["north","south","east","west","n","s","e","w"].indexOf(input) !== -1) { 
 			let goDir = this.processCardinalDirection(input, objectsInRoom); 
-			console.log(goDir);
+			//console.log(goDir);
 			if(typeof goDir == "function") { return goDir(); }
 			if(typeof goDir == "string") { return goDir; } 
 		}
@@ -88,7 +88,7 @@ function DungeonParser() {
 
 				for(let s = 0; s < objectIdentifiers.length; s++) {
 
-					console.log(input[i], objectIdentifiers[s]);
+					//console.log(input[i], objectIdentifiers[s]);
 					if(input[i] == objectIdentifiers[s].toLowerCase()) { 
 						objectFound = objectsInRoom[o]; 
 						this.lastObjectReferenced = objectFound;
@@ -132,7 +132,7 @@ function DungeonParser() {
 
 		//Verb and object both found! Party!
 		if(found(verbFound) && found(objectFound)) {
-			
+			console.log('yes',objectFound,verbFound);
 			return objectFound.response(verbFound);
 		}
 
@@ -198,7 +198,7 @@ function DungeonParser() {
 
 		let descVal = (typeof currentRoom[descOrDescr] == "function" ? currentRoom[descOrDescr]() : currentRoom[descOrDescr]) || "";
 
-		return (descVal?descVal+"<br/><br/>":"") + " There's " + aAnAndList.join(", ") + ".";
+		return (descVal?descVal+"<br/><br/>":"") + "<span class = 'lookAroundText'> There's " + aAnAndList.join(", ") + ".</span>";
 	}
 	
 	this.actionWords = {
@@ -226,6 +226,14 @@ function DungeonParser() {
 			"peek",
 			"x"
 		],
+		"pee":[
+			"pee",
+			"urinate",
+			"piss"
+		],
+		"sleep": [
+			"sleep"
+		],
 		"smell": [
 			"smell",
 			"waft",
@@ -252,6 +260,10 @@ function DungeonParser() {
 			"break",
 			"cut"
 		],
+		"shoot":[
+			"shoot",
+			"blast"
+		],
 		"talk": [
 			"talk",
 			"speak",
@@ -275,6 +287,9 @@ function DungeonParser() {
 			"skeet",
 			"rape",
 			"love"
+		],
+		"smoke":[
+			"smoke"
 		],
 		"use": [
 			"use",
@@ -329,6 +344,7 @@ function DungeonParser() {
 			"pull"
 		],
 		"search": [
+			"search",
 			"search"
 		],
 		"close": [
@@ -358,6 +374,9 @@ function DungeonParser() {
 		"turnoff":[
 			"off",
 			"disable"
+		],
+		"extinguish":[
+			"extinguish"
 		]
 	}
 

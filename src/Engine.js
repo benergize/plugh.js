@@ -158,13 +158,15 @@ function PLUGH(domElement="body", globalize=true) {
 	this._flags = {}
 	
 	this.gameState = function(attr,set=null) {
+		//console.log(attr,set,this)
 		if(set!==null) { this['_flags'][attr]=set; }
 		else {
-			return this['_flags'][attr];//typeof this['_flags'][attr] != 'undefined' && this['_flags'][attr] !== false;
+			return this['_flags'][attr];
 		}
 	}
 
 	this.gameState2 = function(attr,set=null) {
+		//console.log(attr,set,this);
 		if(set!==null) { this['_flags'][attr]=set; }
 		else {
 			return typeof this['_flags'][attr] != 'undefined' && this['_flags'][attr] !== false;
