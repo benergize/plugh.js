@@ -142,7 +142,8 @@ function CommandLine() {
 
 		
 		let cgeneration = document.querySelector('[data-generation="'+this.generation+'"]');
-		this.consoleOutput.scrollTo({top: cgeneration&&!forceBottom?cgeneration.offsetTop:this.consoleOutput.scrollHeight,behavior:'smooth'});
+		let scrollBehavior = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth';
+		this.consoleOutput.scrollTo({top: cgeneration&&!forceBottom?cgeneration.offsetTop:this.consoleOutput.scrollHeight,behavior:scrollBehavior});
 	}
 	
 	this.pressEnter = function() {
