@@ -1056,7 +1056,7 @@ function GameObject(name,pname,props) {
 	this.getActivated = this.activated;
 
 	this.response = function(property) {
-		return typeof this[property] == "function" ? this[property]() : (typeof this[property] != "undefined"&&this[property]!=="" ? this[property] : "Undefined response.");
+		return typeof this[property] == "function" ? this[property]() : (typeof this[property] != "undefined"&&this[property]!=="" ? this[property] : "You can't do that.");
 	}
 
 
